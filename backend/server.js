@@ -14,8 +14,17 @@ import contactRouter from './routes/contactRoute.js'
 // App Config
 const app = express()
 const port = process.env.PORT || 4000;
-connectDB()
-connectCloudinary()
+// Optionally skip DB connect for quick local testing (set SKIP_DB=true in env)
+if (process.env.SKIP_DB === 'true') {
+    console.log('SKIP_DB=true — skipping MongoDB connect (useful for local email testing)');
+} else {
+    connectDB()
+}
+if (process.env.SKIP_DB === 'true') {
+    console.log('SKIP_DB=true — skipping Cloudinary connect (useful for local email testing)');
+} else {
+    connectCloudinary()
+}
 
 // middlewares
 app.use(express.json())

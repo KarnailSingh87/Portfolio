@@ -1,15 +1,31 @@
 import nodemailer from 'nodemailer';
 
-// Send contact message via SMTP. Configure SMTP settings via environment variables:
-// EMAIL_HOST, EMAIL_PORT, EMAIL_SECURE (true/false), EMAIL_USER, EMAIL_PASS, ADMIN_EMAIL
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : undefined,
-  secure: process.env.EMAIL_SECURE === 'true',
-  auth: process.env.EMAIL_USER
-    ? { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-    : undefined,
-});
+// Helper to create a transporter from env or fall back to Ethereal test account
+async function getTransporter() {
+  const hasHost = !!process.env.EMAIL_HOST;
+  const hasAuth = !!process.env.EMAIL_USER;
+
+    if (process.env.EMAIL_HOST && process.env.EMAIL_USER) {
+      return nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : undefined,
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+    }
+
+  // No SMTP config — create a test account (Ethereal) so developers can preview the email
+    const testAccount = await nodemailer.createTestAccount();
+    return nodemailer.createTransport({
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: { user: testAccount.user, pass: testAccount.pass },
+    });
+}
 
 export const sendContact = async (req, res) => {
   try {
@@ -20,15 +36,17 @@ export const sendContact = async (req, res) => {
     }
 
     const receiver = process.env.ADMIN_EMAIL || process.env.RECEIVER_EMAIL;
-    if (!receiver) {
+    if (!receiver && process.env.EMAIL_HOST) {
       console.error('No receiver email configured (ADMIN_EMAIL)');
       return res.status(500).json({ success: false, message: 'Mail receiver not configured' });
     }
 
+  const transporter = await getTransporter();
+
     // Build the email
     const mailOptions = {
       from: `${name} <${email}>`,
-      to: receiver,
+      to: receiver || (process.env.EMAIL_USER || 'no-reply@example.com'),
       subject: `[Portfolio Contact] ${subject}`,
       html: `
         <p><strong>Name:</strong> ${name}</p>
@@ -39,14 +57,25 @@ export const sendContact = async (req, res) => {
       `,
     };
 
-    // If transporter has no auth and host, nodemailer will attempt direct delivery which often fails.
     const info = await transporter.sendMail(mailOptions);
 
     console.log('Contact email sent:', info && info.messageId ? info.messageId : info);
-    return res.json({ success: true, message: 'Message sent' });
+
+    // If using Ethereal test account, return preview URL so developer can view the email
+    let previewUrl = null;
+    try {
+      previewUrl = nodemailer.getTestMessageUrl(info) || null;
+    } catch (e) {
+      // ignore
+    }
+
+    const resp = { success: true, message: 'Message sent' };
+    if (previewUrl) resp.previewUrl = previewUrl;
+
+    return res.json(resp);
   } catch (error) {
     console.error('Contact send error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to send message' });
+    return res.status(500).json({ success: false, message: 'Failed to send message', error: error.message });
   }
 };
 
