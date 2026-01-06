@@ -44,8 +44,12 @@ export const sendContact = async (req, res) => {
     const transporter = await getTransporter();
 
     // Build the email (SMTP/Ethereal)
+    // Use the configured SMTP user as the From address (prevents many providers from rejecting
+    // messages where the From differs from authenticated sender). Set Reply-To to the submitter
+    // so you can reply directly.
     const mailOptions = {
-      from: `${name} <${email}>`,
+      from: process.env.EMAIL_USER || `${name} <${email}>`,
+      replyTo: `${name} <${email}>`,
       to: receiver || (process.env.EMAIL_USER || 'no-reply@example.com'),
       subject: `[Portfolio Contact] ${subject}`,
       html: `
