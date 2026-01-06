@@ -1,0 +1,32 @@
+# Render service definitions for Tamanna (example).
+# Update branch/repo as needed. Do NOT commit secrets; set them in the Render dashboard.
+
+services:
+  - type: web
+    name: tamanna-backend
+    env: node
+    branch: main
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+
+  - type: static
+    name: tamanna-frontend
+    branch: main
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    publishPath: frontend/dist
+
+  - type: static
+    name: tamanna-admin
+    branch: main
+    plan: free
+    buildCommand: cd admin && npm install && npm run build
+    publishPath: admin/dist
+
+# Notes:
+# - This file is a starter template. For production, set secrets and env vars in the
+#   Render dashboard (Settings -> Environment). Do NOT store secrets in this file.
+# - After creating the static sites, you'll get URLs for `tamanna-frontend` and
+#   `tamanna-admin`. Use those values for `FRONTEND_URL` and `ADMIN_URL` in the backend
+#   service environment variables so CORS and redirects work as expected.
