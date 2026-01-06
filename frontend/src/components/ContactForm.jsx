@@ -9,11 +9,32 @@ const ContactForm = () => {
 
   const submit = (e) => {
     e.preventDefault();
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
-      setForm({ name: '', email: '', subject: '', message: '' });
-    }, 3000);
+    // Send form data to backend to forward as email
+    (async () => {
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setSent(true);
+          setTimeout(() => {
+            setSent(false);
+            setForm({ name: '', email: '', subject: '', message: '' });
+          }, 3000);
+        } else {
+          // handle failure
+          console.error('Send failed', data);
+          alert(data.message || 'Failed to send message. Please try again later.');
+        }
+      } catch (err) {
+        console.error('Contact submit error', err);
+        alert('Failed to send message. Please check your connection and try again.');
+      }
+    })();
   };
 
   const inputClasses = (field) => `
