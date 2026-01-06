@@ -35,15 +35,15 @@ export const sendContact = async (req, res) => {
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
-    const receiver = process.env.ADMIN_EMAIL || process.env.RECEIVER_EMAIL;
-    if (!receiver && process.env.EMAIL_HOST) {
-      console.error('No receiver email configured (ADMIN_EMAIL)');
-      return res.status(500).json({ success: false, message: 'Mail receiver not configured' });
-    }
+    // Default receiver: environment ADMIN_EMAIL, fallback to provided address
+    const DEFAULT_RECEIVER = 'tamanna.shar12@gmail.com';
+    const receiver = process.env.ADMIN_EMAIL || process.env.RECEIVER_EMAIL || DEFAULT_RECEIVER;
 
-  const transporter = await getTransporter();
+    // No SendGrid integration present — use SMTP/Ethereal fallback via Nodemailer
 
-    // Build the email
+    const transporter = await getTransporter();
+
+    // Build the email (SMTP/Ethereal)
     const mailOptions = {
       from: `${name} <${email}>`,
       to: receiver || (process.env.EMAIL_USER || 'no-reply@example.com'),
