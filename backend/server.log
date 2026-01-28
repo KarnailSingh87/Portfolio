@@ -1,0 +1,4 @@
+SKIP_DB=true — skipping MongoDB connect (useful for local email testing)
+SKIP_DB=true — skipping Cloudinary connect (useful for local email testing)
+Server started on PORT : 4000
+Contact email sent: <728bb807-639f-6ee6-a81a-2875a81801a2@example.com>
